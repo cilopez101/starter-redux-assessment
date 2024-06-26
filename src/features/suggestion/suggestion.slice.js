@@ -1,28 +1,51 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
-export const fetchSuggestion =
-  createAsyncThunk(/* Task 15: Complete the `createAsyncThunk()` function to load a suggestion from this URL: http://localhost:3004/api/suggestion */);
+export const fetchSuggestion = createAsyncThunk(
+  'suggestion/fetchSuggestion',
+  async (_, thunkAPI) => {
+    try {
+      const response = await fetch('http://localhost:3004/api/suggestion');
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      const data = await response.json();
+      return data.data; // Assuming the API returns { data: { imageUrl, caption } }
+    } catch (error) {
+      return thunkAPI.rejectWithValue({ error: error.message });
+    }
+  }
+);
 
 const initialState = {
-  suggestion: '',
+  suggestion: null,
   loading: false,
   error: true,
 };
 
-const options = {
+const suggestionSlice = createSlice({
   name: 'suggestion',
   initialState,
   reducers: {},
-  extraReducers: {
-    /* Task 16: Inside `extraReducers`, add reducers to handle all three promise lifecycle states - pending, fulfilled, and rejected - for the `fetchSuggestion()` call */
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchSuggestion.pending, (state) => {
+        state.loading = true;
+        state.error = null; // Clear error state on pending
+      })
+      .addCase(fetchSuggestion.fulfilled, (state, action) => {
+        state.loading = false;
+        state.suggestion = action.payload;
+        state.error = null; // Clear error state on success
+      })
+      .addCase(fetchSuggestion.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload.error; // Set error state on rejection
+      });
   },
-};
-
-const suggestionSlice = createSlice(options);
+});
 
 export default suggestionSlice.reducer;
 
-// Task 17: Create a selector, called `selectSuggestion`, for the `suggestion` state variable and export it from the file
-
+export const selectSuggestion = (state) => state.suggestion.suggestion;
 export const selectLoading = (state) => state.suggestion.loading;
 export const selectError = (state) => state.suggestion.error;
